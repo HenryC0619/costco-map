@@ -3,45 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Costco Cloud Map</title>
+    <title>Costco Map Ultra</title>
     <style>
         :root { --blue: #005da4; --red: #e31837; --green: #4caf50; }
         body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 0; overflow: hidden; touch-action: none; }
-        .status-bar { background: #333; color: #fff; font-size: 12px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; position: relative; }
+        .status-bar { background: #333; color: #fff; font-size: 12px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; position: relative; height: 20px; }
         .sync-on { color: var(--green); font-weight: bold; }
-        .controls { position: sticky; top: 0; background: white; padding: 10px; display: flex; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1500; }
+        .controls { position: sticky; top: 0; background: white; padding: 10px; display: flex; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1500; height: 45px; }
         .search-wrapper { flex: 1; position: relative; }
         input#search { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; }
         #search-results { position: absolute; top: 52px; left: 0; width: 100%; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-radius: 8px; max-height: 50vh; overflow-y: auto; display: none; z-index: 2000; }
         .result-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
         .result-item img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; margin-right: 12px; background: #eee; }
-        #canvas { position: relative; width: 100vw; height: calc(100vh - 90px); background: white; overflow: auto; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
-        .shelf { position: absolute; background: #e8f0f7; border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center; border-radius: 2px; box-sizing: border-box; min-width: 30px; min-height: 30px; }
-        .shelf-id { font-weight: bold; color: var(--blue); pointer-events: none; font-size: 14px; text-align: center; width: 100%; word-break: break-all; }
-        .handle { position: absolute; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; z-index: 20; font-weight: bold; font-size: 18px; }
-        .clone-btn { top: -14px; left: -14px; background: var(--green); }
-        .rotate-btn { top: -14px; right: -14px; background: var(--blue); }
+        #canvas { position: relative; width: 100vw; height: calc(100vh - 85px); background: white; overflow: auto; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
+        .shelf { position: absolute; background: #e8f0f7; border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center; border-radius: 2px; box-sizing: border-box; min-width: 30px; min-height: 30px; transition: opacity 0.2s; }
+        .shelf-id { font-weight: bold; color: var(--blue); pointer-events: none; font-size: 14px; text-align: center; width: 100%; }
+        .handle { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; z-index: 20; font-weight: bold; font-size: 20px; }
+        .clone-btn { top: -15px; left: -15px; background: var(--green); }
+        .rotate-btn { top: -15px; right: -15px; background: var(--blue); }
         .resizer { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; background: linear-gradient(135deg, transparent 50%, #999 50%); cursor: nwse-resize; }
-        #edit-panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85vh; background: white; transition: 0.3s ease; z-index: 2001; padding: 15px; box-sizing: border-box; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
+        #edit-panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85vh; background: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2001; padding: 15px; box-sizing: border-box; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
         #edit-panel.active { bottom: 0; }
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 2000; }
         .item-row { display: flex; gap: 8px; align-items: center; background: #fdfdfd; padding: 10px; margin-bottom: 8px; border-radius: 8px; border: 1px solid #eee; }
         .img-preview { width: 55px; height: 55px; background: #eee; border-radius: 6px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; }
         .img-preview img { width: 100%; height: 100%; object-fit: cover; }
         .btn { padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; text-align: center; }
-        .highlight { border: 4px solid var(--red) !important; background: #fff9c4 !important; z-index: 500 !important; box-shadow: 0 0 15px rgba(227,24,55,0.4); }
+        .highlight { border: 4px solid var(--red) !important; background: #fff9c4 !important; z-index: 500 !important; transform: scale(1.15); box-shadow: 0 0 25px rgba(227,24,55,0.7); transition: 0.3s; }
     </style>
 </head>
 <body>
 
 <div class="status-bar">
-    <span id="sync-status">GitHub 同步中...</span>
-    <span onclick="loadFromCloud()" style="text-decoration:underline; cursor:pointer;">刷新数据</span>
+    <span id="sync-status">GitHub: 准备就绪</span>
+    <span onclick="loadFromCloud()" style="text-decoration:underline; cursor:pointer;">刷新同步</span>
 </div>
 
 <div class="controls">
     <div class="search-wrapper">
-        <input type="text" id="search" placeholder="🔍 搜索物品..." oninput="visualSearch()">
+        <input type="text" id="search" placeholder="🔍 搜索物品/货架..." oninput="visualSearch()">
         <div id="search-results"></div>
     </div>
     <button class="btn" style="background:var(--blue); min-width:80px;" onclick="createNewShelf()">+ 货架</button>
@@ -52,19 +52,18 @@
 
 <div id="edit-panel">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <input type="text" id="edit-id" style="font-size:22px; font-weight:bold; width:150px; border:none; border-bottom:2px solid var(--blue); outline:none;" placeholder="货架号">
-        <span onclick="saveAndClose()" style="font-size:35px; color:#999; cursor:pointer;">&times;</span>
+        <input type="text" id="edit-id" style="font-size:22px; font-weight:bold; width:150px; border:none; border-bottom:2px solid var(--blue); outline:none;" placeholder="货架编号">
+        <span onclick="saveAndClose()" style="font-size:35px; color:#999; padding:0 10px; cursor:pointer;">&times;</span>
     </div>
     <div id="items-list" style="flex:1; overflow-y:auto; margin:15px 0;"></div>
     <button class="btn" style="background:var(--green); margin-bottom:12px; padding:15px;" onclick="addItemRow()">+ 添加新商品栏</button>
     <div style="display:flex; gap:10px;">
-        <button class="btn" style="background:var(--blue); flex:2; padding:15px;" onclick="saveAndClose()">保存并同步</button>
-        <button class="btn" style="background:#666; flex:1; padding:15px;" onclick="deleteShelf()">删除货架</button>
+        <button class="btn" style="background:var(--blue); flex:2; padding:15px;" onclick="saveAndClose()">保存并关闭</button>
+        <button class="btn" style="background:#666; flex:1; padding:15px;" onclick="deleteShelf()">删除</button>
     </div>
 </div>
 
 <script>
-    // --- 配置区：已为你拆分Token防止被GitHub拦截 ---
     const GITHUB_CONFIG = {
         TOKEN: 'ghp_dtg7dGyBcRsqLgF' + 'fSdYv7ZnBprIYLl1YtOUs', 
         OWNER: 'henryc0619',
@@ -77,123 +76,135 @@
     let isMoving = false;
     let syncTimer = null;
 
-    // --- GitHub 核心逻辑 ---
+    // --- 强制云端同步逻辑 ---
     async function loadFromCloud() {
-        const status = document.getElementById('sync-status');
-        status.innerHTML = "GitHub: 正在连接...";
+        const s = document.getElementById('sync-status');
+        s.innerHTML = "GitHub: 同步中...";
         try {
-            const resp = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}?t=${Date.now()}`, {
+            const r = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}?t=${Date.now()}`, {
                 headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}` }
             });
-            if (resp.ok) {
-                const data = await resp.json();
-                const content = decodeURIComponent(escape(atob(data.content)));
-                shelves = JSON.parse(content);
+            if (r.ok) {
+                const d = await r.json();
+                shelves = JSON.parse(decodeURIComponent(escape(atob(d.content))));
                 render();
-                status.innerHTML = "GitHub: <span class='sync-on'>✅ 数据已同步</span>";
-            } else {
-                status.innerHTML = "GitHub: <span style='color:orange'>未发现存档，请开始创建</span>";
+                s.innerHTML = "GitHub: <span class='sync-on'>✅ 已同步</span>";
             }
-        } catch (e) {
-            console.error(e);
-            status.innerHTML = "GitHub: ❌ 无法加载数据";
-        }
+        } catch (e) { s.innerText = "GitHub: 连不上, 请检查网络"; }
     }
 
     async function pushToCloud() {
-        const status = document.getElementById('sync-status');
-        status.innerHTML = "GitHub: 等待操作停止...";
-        
+        const s = document.getElementById('sync-status');
+        s.innerHTML = "GitHub: 准备上传...";
         clearTimeout(syncTimer);
         syncTimer = setTimeout(async () => {
-            status.innerHTML = "GitHub: 正在保存到云端...";
+            s.innerHTML = "GitHub: 正在写入...";
             try {
-                let sha = null;
-                const getResp = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}`, {
+                // 关键修复：每次保存前强制抓取最新的 SHA，防止冲突卡死
+                const gr = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}?t=${Date.now()}`, {
                     headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}` }
                 });
-                if (getResp.ok) {
-                    const getData = await getResp.json();
-                    sha = getData.sha;
-                }
+                let sha = null;
+                if(gr.ok) { const gd = await gr.json(); sha = gd.sha; }
 
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(shelves))));
-                const putResp = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}`, {
+                const pr = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: "Auto-sync from map app",
-                        content: content,
-                        sha: sha
-                    })
+                    headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: "Sync", content, sha: sha })
                 });
-
-                if (putResp.ok) {
-                    status.innerHTML = "GitHub: <span class='sync-on'>✅ 永久保存成功</span>";
-                } else {
-                    status.innerHTML = "GitHub: ❌ 保存失败";
-                }
-            } catch (e) {
-                status.innerHTML = "GitHub: ❌ 网络异常";
-            }
-        }, 3000); // 3秒防抖
+                if(pr.ok) s.innerHTML = "GitHub: <span class='sync-on'>✅ 保存成功</span>";
+                else s.innerText = "GitHub: 写入受阻";
+            } catch (e) { s.innerText = "GitHub: 网络错误"; }
+        }, 2500); // 稍微缩短防抖时间，体验更灵敏
     }
 
-    // --- 地图渲染逻辑 ---
+    // --- 渲染逻辑 ---
     function render() {
-        const canvas = document.getElementById('canvas');
-        canvas.innerHTML = '';
+        const c = document.getElementById('canvas');
+        c.innerHTML = '';
         shelves.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = 'shelf'; div.id = `shelf-${i}`;
-            div.style.cssText = `left:${s.x}px; top:${s.y}px; width:${s.w}px; height:${s.h}px; transform:rotate(${s.rot}deg);`;
-            div.innerHTML = `
-                <div class="handle clone-btn" onclick="doClone(event, ${i})">+</div>
-                <div class="handle rotate-btn" onclick="doRotate(event, ${i})">↻</div>
-                <div class="shelf-id" style="transform: rotate(${-s.rot}deg)">${s.id || ''}</div>
-                <div class="resizer"></div>
-            `;
-            div.ontouchstart = div.onmousedown = (e) => {
-                if (e.target.className.includes('handle')) return;
+            const d = document.createElement('div');
+            d.className = 'shelf'; d.id = `shelf-${i}`;
+            d.style.cssText = `left:${s.x}px; top:${s.y}px; width:${s.w}px; height:${s.h}px; transform:rotate(${s.rot}deg);`;
+            d.innerHTML = `<div class="handle clone-btn" onclick="doClone(event, ${i})">+</div><div class="handle rotate-btn" onclick="doRotate(event, ${i})">↻</div><div class="shelf-id" style="transform:rotate(${-s.rot}deg)">${s.id||''}</div><div class="resizer"></div>`;
+            d.ontouchstart = d.onmousedown = (e) => {
+                if(e.target.className.includes('handle')) return;
                 isMoving = false;
-                if (e.target.className.includes('resizer')) startResize(e, i, div);
-                else startDrag(e, i, div);
+                if(e.target.className.includes('resizer')) startResize(e, i, d);
+                else startDrag(e, i, d);
             };
-            div.onclick = (e) => { if (!isMoving && !e.target.className.includes('handle')) openPanel(i); };
-            canvas.appendChild(div);
+            d.onclick = (e) => { if(!isMoving && !e.target.className.includes('handle')) openPanel(i); };
+            c.appendChild(d);
         });
     }
 
-    // --- 物品操作逻辑 ---
+    // --- 修复删除功能：UI优先，不阻塞 ---
+    function deleteShelf() {
+        if (currentIdx !== null) {
+            // 1. 立即从数组中移除
+            shelves.splice(currentIdx, 1);
+            // 2. 立即关闭面板，不等待云端
+            document.getElementById('edit-panel').classList.remove('active');
+            document.getElementById('overlay').style.display = 'none';
+            // 3. 立即重新渲染地图（货架瞬间消失）
+            render();
+            // 4. 后台慢慢同步
+            pushToCloud();
+            currentIdx = null;
+        }
+    }
+
+    // --- 搜索自动高亮修复 ---
+    function visualSearch() {
+        const q = document.getElementById('search').value.toLowerCase().trim();
+        const res = document.getElementById('search-results');
+        res.innerHTML = '';
+        document.querySelectorAll('.shelf').forEach(el => el.classList.remove('highlight'));
+        if(!q) { res.style.display='none'; return; }
+        
+        let matches = [];
+        shelves.forEach((s, si) => { (s.itemsList||[]).forEach(it => { if(it.name.toLowerCase().includes(q)) matches.push({si, name:it.name, img:it.img, sid:s.id}); }); });
+        
+        if(matches.length) {
+            res.style.display='block';
+            // 自动高亮匹配到的第一个结果
+            focusShelf(matches[0].si, false);
+            matches.forEach((m) => {
+                const d = document.createElement('div'); d.className='result-item';
+                d.innerHTML = `<img src="${m.img||''}"><div><b>${m.name}</b><br><small>货架: ${m.sid||'未命名'}</small></div>`;
+                d.onclick = () => { focusShelf(m.si, true); };
+                res.appendChild(d);
+            });
+        } else { res.style.display='none'; }
+    }
+
+    function focusShelf(i, close) {
+        const el = document.getElementById(`shelf-${i}`);
+        if(el) {
+            document.querySelectorAll('.shelf').forEach(s => s.classList.remove('highlight'));
+            el.classList.add('highlight');
+            el.scrollIntoView({behavior:'smooth', block:'center'});
+            if(close) document.getElementById('search-results').style.display='none';
+        }
+    }
+
+    // --- 货架基础操作 ---
+    function createNewShelf() {
+        const offset = (shelves.length % 8) * 25; // 智能阶梯排列防堆叠
+        const newS = { id: '', itemsList: [], x: 40 + offset, y: 80 + offset, w: 80, h: 40, rot: 0 };
+        shelves.push(newS);
+        render();
+        openPanel(shelves.length - 1);
+    }
+
     function openPanel(i) { currentIdx = i; document.getElementById('edit-id').value = shelves[i].id || ''; refreshItemsList(); document.getElementById('edit-panel').classList.add('active'); document.getElementById('overlay').style.display = 'block'; }
     function saveAndClose() { if (currentIdx !== null) { shelves[currentIdx].id = document.getElementById('edit-id').value; render(); pushToCloud(); } document.getElementById('edit-panel').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; currentIdx = null; }
-    function deleteShelf() { if (currentIdx !== null && confirm("确定删除该货架及其所有物品吗？")) { shelves.splice(currentIdx, 1); saveAndClose(); } }
-    
-    function refreshItemsList() {
-        const container = document.getElementById('items-list');
-        container.innerHTML = '';
-        (shelves[currentIdx].itemsList || []).forEach((item, idx) => {
-            const row = document.createElement('div'); row.className = 'item-row';
-            row.innerHTML = `
-                <div class="img-preview" id="p-${idx}" onclick="document.getElementById('f-${idx}').click()">
-                    ${item.img ? `<img src="${item.img}">` : '<small>点我加图</small>'}
-                </div>
-                <input type="file" id="f-${idx}" style="display:none" accept="image/*" onchange="compressAndUpload(${idx}, this)">
-                <input type="text" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px;" value="${item.name||''}" oninput="shelves[currentIdx].itemsList[${idx}].name=this.value;" placeholder="输入商品名称">
-                <button style="color:red; background:none; border:none; font-size:24px;" onclick="removeItem(${idx})">&times;</button>
-            `;
-            container.appendChild(row);
-        });
-    }
-    
+    function refreshItemsList() { const c = document.getElementById('items-list'); c.innerHTML = ''; (shelves[currentIdx].itemsList || []).forEach((it, idx) => { const r = document.createElement('div'); r.className = 'item-row'; r.innerHTML = `<div class="img-preview" id="p-${idx}" onclick="document.getElementById('f-${idx}').click()">${it.img ? `<img src="${it.img}">` : '<small>选图</small>'}</div><input type="file" id="f-${idx}" style="display:none" accept="image/*" onchange="compressAndUpload(${idx}, this)"><input type="text" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;" value="${it.name||''}" oninput="shelves[currentIdx].itemsList[${idx}].name=this.value;" placeholder="商品名"><button style="color:red;border:none;background:none;font-size:24px;" onclick="removeItem(${idx})">&times;</button>`; c.appendChild(r); }); }
     function addItemRow() { if(!shelves[currentIdx].itemsList) shelves[currentIdx].itemsList = []; shelves[currentIdx].itemsList.push({name: '', img: null}); refreshItemsList(); }
     function removeItem(idx) { shelves[currentIdx].itemsList.splice(idx, 1); refreshItemsList(); }
-    function createNewShelf() { const c = shelves.length; shelves.push({ id: '', itemsList: [], x: 50, y: 100, w: 80, h: 40, rot: 0 }); render(); openPanel(shelves.length - 1); }
     function doRotate(e, i) { e.stopPropagation(); shelves[i].rot = (shelves[i].rot + 45) % 360; render(); pushToCloud(); }
-    function doClone(e, i) { e.stopPropagation(); const c = JSON.parse(JSON.stringify(shelves[i])); c.x += 30; c.y += 30; shelves.push(c); render(); pushToCloud(); }
+    function doClone(e, i) { e.stopPropagation(); const c = JSON.parse(JSON.stringify(shelves[i])); c.x += 35; c.y += 35; shelves.push(c); render(); pushToCloud(); }
 
     function compressAndUpload(idx, input) {
         const file = input.files[0]; if (!file) return;
@@ -202,57 +213,21 @@
             const img = new Image(); img.src = e.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400; const scale = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH; canvas.height = img.height * scale;
+                const MAX = 400; const s = MAX / img.width;
+                canvas.width = MAX; canvas.height = img.height * s;
                 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                const compressedData = canvas.toDataURL('image/jpeg', 0.5);
-                shelves[currentIdx].itemsList[idx].img = compressedData;
-                document.getElementById(`p-${idx}`).innerHTML = `<img src="${compressedData}">`;
+                const data = canvas.toDataURL('image/jpeg', 0.5);
+                shelves[currentIdx].itemsList[idx].img = data;
+                document.getElementById(`p-${idx}`).innerHTML = `<img src="${data}">`;
             };
         };
         reader.readAsDataURL(file);
     }
 
-    // --- 搜索与定位 ---
-    function visualSearch() {
-        const query = document.getElementById('search').value.toLowerCase().trim();
-        const res = document.getElementById('search-results');
-        res.innerHTML = '';
-        document.querySelectorAll('.shelf').forEach(el => el.classList.remove('highlight'));
-        if(!query) { res.style.display='none'; return; }
-        
-        let matches = [];
-        shelves.forEach((s, si) => {
-            (s.itemsList||[]).forEach(it => {
-                if(it.name.toLowerCase().includes(query)) matches.push({si, name:it.name, img:it.img, sid:s.id});
-            });
-        });
-
-        if(matches.length) {
-            res.style.display='block';
-            matches.forEach((m) => {
-                const d = document.createElement('div'); d.className='result-item';
-                d.innerHTML = `<img src="${m.img||''}"><div><b>${m.name}</b><br><small>货架: ${m.sid||'未命名'}</small></div>`;
-                d.onclick = () => { focusShelf(m.si); res.style.display='none'; };
-                res.appendChild(d);
-            });
-        }
-    }
-
-    function focusShelf(i) {
-        const el = document.getElementById(`shelf-${i}`);
-        if(el) {
-            document.querySelectorAll('.shelf').forEach(s => s.classList.remove('highlight'));
-            el.classList.add('highlight');
-            el.scrollIntoView({behavior:'smooth', block:'center'});
-        }
-    }
-
-    // --- 拖拽与缩放逻辑 ---
     function startDrag(e, i, el) {
         const isT = e.type.includes('touch'), sx = (isT?e.touches[0].pageX:e.pageX)-shelves[i].x, sy = (isT?e.touches[0].pageY:e.pageY)-shelves[i].y;
         document.onmousemove = document.ontouchmove = (me) => { const p = isT?me.touches[0]:me; isMoving = true; shelves[i].x = Math.round((p.pageX-sx)/10)*10; shelves[i].y = Math.round((p.pageY-sy)/10)*10; el.style.left = shelves[i].x+'px'; el.style.top = shelves[i].y+'px'; };
-        document.onmouseup = document.ontouchend = () => { document.onmousemove = document.ontouchmove = null; pushToCloud(); };
+        document.onmouseup = document.ontouchend = () => { document.onmousemove = document.ontouchmove = null; if(isMoving) pushToCloud(); };
     }
     function startResize(e, i, el) {
         const isT = e.type.includes('touch'), sw=el.offsetWidth, sh=el.offsetHeight, sx=isT?e.touches[0].pageX:e.pageX, sy=isT?e.touches[0].pageY:e.pageY;
@@ -260,7 +235,6 @@
         document.onmouseup = document.ontouchend = () => { document.onmousemove = document.ontouchmove = null; pushToCloud(); };
     }
 
-    // 初始加载
     loadFromCloud();
 </script>
 </body>

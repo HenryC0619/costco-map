@@ -3,62 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Costco Map Ultra</title>
+    <title>Costco Infinite Map</title>
     <style>
         :root { --blue: #005da4; --red: #e31837; --green: #4caf50; }
-        body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 0; overflow: hidden; touch-action: none; }
-        .status-bar { background: #333; color: #fff; font-size: 12px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; position: relative; height: 20px; }
+        body { font-family: sans-serif; background: #333; margin: 0; padding: 0; overflow: hidden; touch-action: none; }
+        
+        /* 状态栏与控制区固定 */
+        .ui-layer { position: fixed; top: 0; left: 0; width: 100%; z-index: 2000; }
+        .status-bar { background: #222; color: #fff; font-size: 11px; padding: 4px 10px; display: flex; justify-content: space-between; align-items: center; }
         .sync-on { color: var(--green); font-weight: bold; }
-        .controls { position: sticky; top: 0; background: white; padding: 10px; display: flex; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1500; height: 45px; }
-        .search-wrapper { flex: 1; position: relative; }
-        input#search { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; }
-        #search-results { position: absolute; top: 52px; left: 0; width: 100%; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-radius: 8px; max-height: 50vh; overflow-y: auto; display: none; z-index: 2000; }
-        .result-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
-        .result-item img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; margin-right: 12px; background: #eee; }
-        #canvas { position: relative; width: 100vw; height: calc(100vh - 85px); background: white; overflow: auto; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
-        .shelf { position: absolute; background: #e8f0f7; border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center; border-radius: 2px; box-sizing: border-box; min-width: 30px; min-height: 30px; transition: opacity 0.2s; }
-        .shelf-id { font-weight: bold; color: var(--blue); pointer-events: none; font-size: 14px; text-align: center; width: 100%; }
-        .handle { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; z-index: 20; font-weight: bold; font-size: 20px; }
+        .controls { background: white; padding: 10px; display: flex; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        
+        /* 画布容器：支持滚动 */
+        #viewport { width: 100vw; height: 100vh; overflow: auto; background: #555; position: relative; padding-top: 85px; box-sizing: border-box; }
+        
+        /* 实际画布：大小可调 */
+        #canvas { 
+            position: relative; 
+            background: white; 
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background-image: radial-gradient(#ccc 1px, transparent 1px);
+            background-size: 40px 40px;
+            /* 默认 3000px，你可以随便改 */
+            width: 3000px; 
+            height: 3000px; 
+        }
+
+        .shelf { position: absolute; background: #e8f0f7; border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center; border-radius: 2px; box-sizing: border-box; min-width: 30px; min-height: 30px; }
+        .shelf-id { font-weight: bold; color: var(--blue); pointer-events: none; font-size: 14px; text-align: center; }
+        .handle { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; z-index: 20; font-weight: bold; font-size: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .clone-btn { top: -15px; left: -15px; background: var(--green); }
         .rotate-btn { top: -15px; right: -15px; background: var(--blue); }
-        .resizer { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; background: linear-gradient(135deg, transparent 50%, #999 50%); cursor: nwse-resize; }
-        #edit-panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85vh; background: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2001; padding: 15px; box-sizing: border-box; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
+        .resizer { position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; background: linear-gradient(135deg, transparent 50%, #999 50%); cursor: nwse-resize; }
+        
+        /* 编辑面板 */
+        #edit-panel { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85vh; background: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2100; padding: 15px; box-sizing: border-box; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.3); }
         #edit-panel.active { bottom: 0; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 2000; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 2050; }
+        
+        .search-wrapper { flex: 1; position: relative; }
+        input#search { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; }
+        #search-results { position: absolute; top: 52px; left: 0; width: 100%; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border-radius: 8px; max-height: 50vh; overflow-y: auto; display: none; z-index: 2200; }
+        .result-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .result-item img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; margin-right: 12px; }
+        
         .item-row { display: flex; gap: 8px; align-items: center; background: #fdfdfd; padding: 10px; margin-bottom: 8px; border-radius: 8px; border: 1px solid #eee; }
-        .img-preview { width: 55px; height: 55px; background: #eee; border-radius: 6px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; }
+        .img-preview { width: 55px; height: 55px; background: #eee; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; flex-shrink: 0; }
         .img-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .btn { padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; text-align: center; }
-        .highlight { border: 4px solid var(--red) !important; background: #fff9c4 !important; z-index: 500 !important; transform: scale(1.15); box-shadow: 0 0 25px rgba(227,24,55,0.7); transition: 0.3s; }
+        .btn { padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        .highlight { border: 5px solid var(--red) !important; background: #fff9c4 !important; z-index: 1000 !important; transform: scale(1.2); box-shadow: 0 0 30px var(--red); transition: 0.3s; }
     </style>
 </head>
 <body>
 
-<div class="status-bar">
-    <span id="sync-status">GitHub: 准备就绪</span>
-    <span onclick="loadFromCloud()" style="text-decoration:underline; cursor:pointer;">刷新同步</span>
-</div>
-
-<div class="controls">
-    <div class="search-wrapper">
-        <input type="text" id="search" placeholder="🔍 搜索物品/货架..." oninput="visualSearch()">
-        <div id="search-results"></div>
+<div class="ui-layer">
+    <div class="status-bar">
+        <span id="sync-status">GitHub: 正在连接...</span>
+        <span onclick="loadFromCloud()" style="text-decoration:underline;">刷新同步</span>
     </div>
-    <button class="btn" style="background:var(--blue); min-width:80px;" onclick="createNewShelf()">+ 货架</button>
+    <div class="controls">
+        <div class="search-wrapper">
+            <input type="text" id="search" placeholder="🔍 在 3000px 画布中搜索..." oninput="visualSearch()">
+            <div id="search-results"></div>
+        </div>
+        <button class="btn" style="background:var(--blue); min-width:80px;" onclick="createNewShelf()">+ 货架</button>
+    </div>
 </div>
 
-<div id="canvas"></div>
+<div id="viewport">
+    <div id="canvas"></div>
+</div>
+
 <div id="overlay" onclick="saveAndClose()"></div>
 
 <div id="edit-panel">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <input type="text" id="edit-id" style="font-size:22px; font-weight:bold; width:150px; border:none; border-bottom:2px solid var(--blue); outline:none;" placeholder="货架编号">
-        <span onclick="saveAndClose()" style="font-size:35px; color:#999; padding:0 10px; cursor:pointer;">&times;</span>
+        <input type="text" id="edit-id" style="font-size:22px; font-weight:bold; width:150px; border:none; border-bottom:2px solid var(--blue); outline:none;" placeholder="货架号">
+        <span onclick="saveAndClose()" style="font-size:35px; color:#999; padding:0 10px;">&times;</span>
     </div>
     <div id="items-list" style="flex:1; overflow-y:auto; margin:15px 0;"></div>
     <button class="btn" style="background:var(--green); margin-bottom:12px; padding:15px;" onclick="addItemRow()">+ 添加新商品栏</button>
     <div style="display:flex; gap:10px;">
-        <button class="btn" style="background:var(--blue); flex:2; padding:15px;" onclick="saveAndClose()">保存并关闭</button>
+        <button class="btn" style="background:var(--blue); flex:2; padding:15px;" onclick="saveAndClose()">保存退出</button>
         <button class="btn" style="background:#666; flex:1; padding:15px;" onclick="deleteShelf()">删除</button>
     </div>
 </div>
@@ -75,11 +101,10 @@
     let currentIdx = null;
     let isMoving = false;
     let syncTimer = null;
+    let startX, startY;
 
-    // --- 强制云端同步逻辑 ---
     async function loadFromCloud() {
         const s = document.getElementById('sync-status');
-        s.innerHTML = "GitHub: 同步中...";
         try {
             const r = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}?t=${Date.now()}`, {
                 headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}` }
@@ -90,7 +115,7 @@
                 render();
                 s.innerHTML = "GitHub: <span class='sync-on'>✅ 已同步</span>";
             }
-        } catch (e) { s.innerText = "GitHub: 连不上, 请检查网络"; }
+        } catch (e) { s.innerText = "GitHub: 同步失败"; }
     }
 
     async function pushToCloud() {
@@ -100,26 +125,22 @@
         syncTimer = setTimeout(async () => {
             s.innerHTML = "GitHub: 正在写入...";
             try {
-                // 关键修复：每次保存前强制抓取最新的 SHA，防止冲突卡死
                 const gr = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}?t=${Date.now()}`, {
                     headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}` }
                 });
-                let sha = null;
-                if(gr.ok) { const gd = await gr.json(); sha = gd.sha; }
+                let sha = null; if(gr.ok) { const gd = await gr.json(); sha = gd.sha; }
 
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(shelves))));
                 const pr = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONFIG.FILE_PATH}`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${GITHUB_CONFIG.TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Sync", content, sha: sha })
+                    body: JSON.stringify({ message: "Update Map", content, sha: sha })
                 });
                 if(pr.ok) s.innerHTML = "GitHub: <span class='sync-on'>✅ 保存成功</span>";
-                else s.innerText = "GitHub: 写入受阻";
-            } catch (e) { s.innerText = "GitHub: 网络错误"; }
-        }, 2500); // 稍微缩短防抖时间，体验更灵敏
+            } catch (e) { s.innerText = "GitHub: 网络异常"; }
+        }, 2500);
     }
 
-    // --- 渲染逻辑 ---
     function render() {
         const c = document.getElementById('canvas');
         c.innerHTML = '';
@@ -128,8 +149,11 @@
             d.className = 'shelf'; d.id = `shelf-${i}`;
             d.style.cssText = `left:${s.x}px; top:${s.y}px; width:${s.w}px; height:${s.h}px; transform:rotate(${s.rot}deg);`;
             d.innerHTML = `<div class="handle clone-btn" onclick="doClone(event, ${i})">+</div><div class="handle rotate-btn" onclick="doRotate(event, ${i})">↻</div><div class="shelf-id" style="transform:rotate(${-s.rot}deg)">${s.id||''}</div><div class="resizer"></div>`;
+            
             d.ontouchstart = d.onmousedown = (e) => {
                 if(e.target.className.includes('handle')) return;
+                const p = e.type.includes('touch') ? e.touches[0] : e;
+                startX = p.pageX; startY = p.pageY;
                 isMoving = false;
                 if(e.target.className.includes('resizer')) startResize(e, i, d);
                 else startDrag(e, i, d);
@@ -139,36 +163,29 @@
         });
     }
 
-    // --- 修复删除功能：UI优先，不阻塞 ---
-    function deleteShelf() {
-        if (currentIdx !== null) {
-            // 1. 立即从数组中移除
-            shelves.splice(currentIdx, 1);
-            // 2. 立即关闭面板，不等待云端
-            document.getElementById('edit-panel').classList.remove('active');
-            document.getElementById('overlay').style.display = 'none';
-            // 3. 立即重新渲染地图（货架瞬间消失）
-            render();
-            // 4. 后台慢慢同步
-            pushToCloud();
-            currentIdx = null;
+    // --- 自动滚动定位核心 ---
+    function focusShelf(i, close) {
+        const el = document.getElementById(`shelf-${i}`);
+        const view = document.getElementById('viewport');
+        if(el) {
+            document.querySelectorAll('.shelf').forEach(s => s.classList.remove('highlight'));
+            el.classList.add('highlight');
+            // 平滑滚动：使目标位于视口中央
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            if(close) document.getElementById('search-results').style.display='none';
         }
     }
 
-    // --- 搜索自动高亮修复 ---
     function visualSearch() {
         const q = document.getElementById('search').value.toLowerCase().trim();
         const res = document.getElementById('search-results');
         res.innerHTML = '';
         document.querySelectorAll('.shelf').forEach(el => el.classList.remove('highlight'));
         if(!q) { res.style.display='none'; return; }
-        
         let matches = [];
         shelves.forEach((s, si) => { (s.itemsList||[]).forEach(it => { if(it.name.toLowerCase().includes(q)) matches.push({si, name:it.name, img:it.img, sid:s.id}); }); });
-        
         if(matches.length) {
             res.style.display='block';
-            // 自动高亮匹配到的第一个结果
             focusShelf(matches[0].si, false);
             matches.forEach((m) => {
                 const d = document.createElement('div'); d.className='result-item';
@@ -179,25 +196,17 @@
         } else { res.style.display='none'; }
     }
 
-    function focusShelf(i, close) {
-        const el = document.getElementById(`shelf-${i}`);
-        if(el) {
-            document.querySelectorAll('.shelf').forEach(s => s.classList.remove('highlight'));
-            el.classList.add('highlight');
-            el.scrollIntoView({behavior:'smooth', block:'center'});
-            if(close) document.getElementById('search-results').style.display='none';
-        }
-    }
-
-    // --- 货架基础操作 ---
     function createNewShelf() {
-        const offset = (shelves.length % 8) * 25; // 智能阶梯排列防堆叠
-        const newS = { id: '', itemsList: [], x: 40 + offset, y: 80 + offset, w: 80, h: 40, rot: 0 };
-        shelves.push(newS);
+        // 在当前视口中心添加新货架
+        const view = document.getElementById('viewport');
+        const newX = view.scrollLeft + 100 + (shelves.length % 5 * 20);
+        const newY = view.scrollTop + 200 + (shelves.length % 5 * 20);
+        shelves.push({ id: '', itemsList: [], x: newX, y: newY, w: 80, h: 40, rot: 0 });
         render();
         openPanel(shelves.length - 1);
     }
 
+    function deleteShelf() { if (currentIdx !== null) { shelves.splice(currentIdx, 1); saveAndClose(); } }
     function openPanel(i) { currentIdx = i; document.getElementById('edit-id').value = shelves[i].id || ''; refreshItemsList(); document.getElementById('edit-panel').classList.add('active'); document.getElementById('overlay').style.display = 'block'; }
     function saveAndClose() { if (currentIdx !== null) { shelves[currentIdx].id = document.getElementById('edit-id').value; render(); pushToCloud(); } document.getElementById('edit-panel').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; currentIdx = null; }
     function refreshItemsList() { const c = document.getElementById('items-list'); c.innerHTML = ''; (shelves[currentIdx].itemsList || []).forEach((it, idx) => { const r = document.createElement('div'); r.className = 'item-row'; r.innerHTML = `<div class="img-preview" id="p-${idx}" onclick="document.getElementById('f-${idx}').click()">${it.img ? `<img src="${it.img}">` : '<small>选图</small>'}</div><input type="file" id="f-${idx}" style="display:none" accept="image/*" onchange="compressAndUpload(${idx}, this)"><input type="text" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;" value="${it.name||''}" oninput="shelves[currentIdx].itemsList[${idx}].name=this.value;" placeholder="商品名"><button style="color:red;border:none;background:none;font-size:24px;" onclick="removeItem(${idx})">&times;</button>`; c.appendChild(r); }); }
@@ -226,12 +235,19 @@
 
     function startDrag(e, i, el) {
         const isT = e.type.includes('touch'), sx = (isT?e.touches[0].pageX:e.pageX)-shelves[i].x, sy = (isT?e.touches[0].pageY:e.pageY)-shelves[i].y;
-        document.onmousemove = document.ontouchmove = (me) => { const p = isT?me.touches[0]:me; isMoving = true; shelves[i].x = Math.round((p.pageX-sx)/10)*10; shelves[i].y = Math.round((p.pageY-sy)/10)*10; el.style.left = shelves[i].x+'px'; el.style.top = shelves[i].y+'px'; };
+        document.onmousemove = document.ontouchmove = (me) => {
+            const p = isT?me.touches[0]:me;
+            const dist = Math.sqrt(Math.pow(p.pageX-startX, 2) + Math.pow(p.pageY-startY, 2));
+            if(dist > 5) isMoving = true;
+            shelves[i].x = Math.round((p.pageX-sx)/10)*10;
+            shelves[i].y = Math.round((p.pageY-sy)/10)*10;
+            el.style.left = shelves[i].x+'px'; el.style.top = shelves[i].y+'px';
+        };
         document.onmouseup = document.ontouchend = () => { document.onmousemove = document.ontouchmove = null; if(isMoving) pushToCloud(); };
     }
     function startResize(e, i, el) {
         const isT = e.type.includes('touch'), sw=el.offsetWidth, sh=el.offsetHeight, sx=isT?e.touches[0].pageX:e.pageX, sy=isT?e.touches[0].pageY:e.pageY;
-        document.onmousemove = document.ontouchmove = (me) => { const p = isT?me.touches[0]:me; shelves[i].w = Math.max(30, Math.round((sw+(p.pageX-sx))/10)*10); shelves[i].h = Math.max(30, Math.round((sh+(p.pageY-sy))/10)*10); el.style.width = shelves[i].w+'px'; el.style.height = shelves[i].h+'px'; };
+        document.onmousemove = document.ontouchmove = (me) => { const p = isT?me.touches[0]:me; shelves[i].w = Math.max(30, Math.round((sw+(p.pageX-sx))/10)*10); shelves[i].h = Math.max(30, Math.round((sh+(p.pageY-sy))/10)*10); el.style.width = shelves[i].w+'px'; el.style.height = shelves[i].h+'px'; isMoving = true; };
         document.onmouseup = document.ontouchend = () => { document.onmousemove = document.ontouchmove = null; pushToCloud(); };
     }
 
